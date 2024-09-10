@@ -13,7 +13,7 @@ import TypeForm from "./type";
 import EngineForm from "./engine";
 import WaveRunnerForm from "./waverunner";
 
-export enum Steps {
+enum Steps {
   CLIENT = 0,
   JETSKI = 1,
   VESSEL = 2,
