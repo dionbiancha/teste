@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import PageContainer from "@/components/container/PageContainer";
 import { useRouter, useSearchParams } from "next/navigation";
-import Navigation from "../(home)/layout/horizontal/navbar/Navigation";
+
 import HorizontalHeader from "../(home)/layout/horizontal/header/Header";
 import {
   Box,
@@ -19,14 +19,8 @@ import TypeForm from "../cadastro/type";
 import WaveRunnerForm from "../cadastro/waverunner";
 import VesselForm from "../cadastro/vessel";
 import EngineForm from "../cadastro/engine";
-
-export enum Steps {
-  CLIENT = 0,
-  JETSKI = 1,
-  VESSEL = 2,
-  ENGINE = 3,
-  TYPE_VESSEL = 4,
-}
+import { Steps } from "../cadastro/data";
+import VesselAndEngineForm from "../cadastro/vesselAndEngine";
 
 export default function Edit() {
   const searchParams = useSearchParams();
@@ -39,7 +33,6 @@ export default function Edit() {
     "Cliente",
     "Jetski",
     "Embarcação",
-    "Motor",
   ]);
   const [activeStep, setActiveStep] = useState<Steps>(Steps.CLIENT);
 
@@ -50,7 +43,6 @@ export default function Edit() {
   return (
     <PageContainer title="Dashboard" description="this is Dashboard">
       <HorizontalHeader closeAction />
-      <Navigation />
 
       <Container
         sx={{
@@ -88,10 +80,7 @@ export default function Edit() {
           <WaveRunnerForm handleStep={(e) => handleStep(e)} />
         </Box>
         <Box sx={{ display: activeStep === Steps.VESSEL ? "block" : "none" }}>
-          <VesselForm handleStep={(e) => handleStep(e)} />
-        </Box>
-        <Box sx={{ display: activeStep === Steps.ENGINE ? "block" : "none" }}>
-          <EngineForm handleStep={(e) => handleStep(e)} />
+          <VesselAndEngineForm handleStep={(e) => handleStep(e)} />
         </Box>
       </Container>
     </PageContainer>

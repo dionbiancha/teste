@@ -7,9 +7,9 @@ import { ThemeSettings } from "@/utils/theme/Theme";
 import { useSelector } from "react-redux";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v14-appRouter";
 import { AppState } from "@/store/store";
-import "@/utils/i18n";
 import Snack from "@/components/ui-components/snack";
 import Loading from "./loading";
+import Dashboard from "./(home)/page";
 
 const MyApp = ({ children }: { children: React.ReactNode }) => {
   const theme = ThemeSettings();
@@ -17,16 +17,14 @@ const MyApp = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <>
-      <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-        <ThemeProvider theme={theme}>
-          <RTL direction={customizer.activeDir}>
-            <Loading />
-            <Snack />
-            <CssBaseline />
-            {children}
-          </RTL>
-        </ThemeProvider>
-      </AppRouterCacheProvider>
+      <ThemeProvider theme={theme}>
+        <RTL direction={customizer.activeDir}>
+          <Loading />
+          <Snack />
+          <CssBaseline />
+          {children}
+        </RTL>
+      </ThemeProvider>
     </>
   );
 };

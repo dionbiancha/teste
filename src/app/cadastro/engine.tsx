@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
+  Divider,
   FormHelperText,
   IconButton,
   Menu,
@@ -39,9 +40,9 @@ import {
   LEISURE_OR_COMMERCIAL,
 } from "./data";
 import { useDispatch } from "@/store/hooks";
-import { Steps } from "./page";
+import { Steps } from "./data";
 import { use, useEffect, useState } from "react";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { IconDotsVertical, IconTrash } from "@tabler/icons-react";
 import theme from "@/utils/theme";
 import { showSnack } from "@/store/snack/snackSlice";
 import GenericDialog from "@/components/ui-components/dialog/GenericDialog";
@@ -53,33 +54,20 @@ import {
   EngineModel,
   EnginesList,
   getListEngines,
+  updateEngine,
 } from "@/service/engine";
+import { set } from "lodash";
+import { fi } from "date-fns/locale";
 
-export type Order = "asc" | "desc";
-
-export function EnhancedTableHead() {
-  return (
-    <TableHead>
-      <TableRow>
-        {headMotorsCells.map((headCell) => (
-          <TableCell
-            key={headCell.id}
-            align={headCell.numeric ? "right" : "left"}
-            padding={headCell.disablePadding ? "none" : "normal"}
-          >
-            <TableSortLabel>{headCell.label}</TableSortLabel>
-          </TableCell>
-        ))}
-      </TableRow>
-    </TableHead>
-  );
+interface EngineFormProps {
+  setEngines: (engines: Engine) => void;
+  remove: () => void;
+  isNotUnique: boolean;
+  engine: Engine;
 }
 
-interface VesselFormProps {
-  handleStep: (step: Steps) => void;
-}
-
-export default function EngineForm({ handleStep }: VesselFormProps) {
+export default function EngineForm(data: EngineFormProps) {
+  const { remove, isNotUnique, setEngines, engine } = data;
   const clientData = useSelector((state: AppState) => state.clientData);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -113,44 +101,11 @@ export default function EngineForm({ handleStep }: VesselFormProps) {
   const [selectedTypeModel, setSelectedTypeModel] = useState<string | null>(
     null
   );
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const isAnyFieldEmpty =
-    !values.modelType ||
-    !values.model ||
-    !values.power ||
-    !values.year ||
-    !values.saleDate ||
-    !values.typeOfFuel ||
-    !values.leisureOrCommercial;
 
   const onSubmit: SubmitHandler<Engine> = async (data: Engine) => {
     try {
-      if (clientData.clientId || id) {
-        await addEngine({ ...data, cpf: clientData.clientCpf });
-
-        reset();
-        dispatch(
-          showSnack({
-            title: "Motor adicionado com sucesso!",
-            type: "success",
-          })
-        );
-        getListOfRegisteredEngines();
-      }
     } catch (err: any) {}
   };
-
-  async function getListOfRegisteredEngines() {
-    if (!id && !clientData.clientId) return;
-
-    try {
-      const res = await getListEngines(id ?? clientData.clientId);
-      setListEngines(res);
-    } catch (err) {}
-  }
 
   async function getListModelEngine() {
     try {
@@ -159,17 +114,13 @@ export default function EngineForm({ handleStep }: VesselFormProps) {
     } catch (err) {}
   }
 
-  function isEmpty() {
-    return listEngines?.length === 0;
-  }
-
   async function handleDeleteEngine() {
     try {
-      if (!selected) return;
+      remove();
+      if (!engine) return;
       setShowDialog(false);
 
-      await deleteEngine(selected);
-      getListOfRegisteredEngines();
+      await deleteEngine(engine.id ?? "");
       dispatch(
         showSnack({
           title: "Motor deletado com sucesso!",
@@ -179,454 +130,352 @@ export default function EngineForm({ handleStep }: VesselFormProps) {
     } catch (err) {}
   }
 
-  const goToHome = () => {
-    router.push("/");
-  };
-
   useEffect(() => {
-    getListOfRegisteredEngines();
     getListModelEngine();
   }, []);
+
+  useEffect(() => {
+    reset(engine);
+  }, [engine]);
 
   return (
     <>
       {showDialog && (
         <GenericDialog
           cancelText="Voltar"
-          confirmText="Deletar"
+          confirmText="Remover"
           title="Tem certeza que deseja continuar?"
-          content="Ao continuar, você irá deletar o cadastro selecionado."
+          content="Ao continuar, você irá remover o motor selecionado."
           handleCancel={() => setShowDialog(false)}
           handleConfirm={() => handleDeleteEngine()}
         />
       )}
       <form onSubmit={handleSubmit(onSubmit)}>
+        {/* <Divider sx={{ mb: 5 }} /> */}
         <Stack
-          spacing={5}
-          sx={{ minHeight: "calc(100vh - 170px)", marginTop: "30px" }}
+          mb={5}
+          sx={{
+            backgroundColor: "#f9f9f96f",
+            width: "100%",
+            padding: "30px",
+            borderRadius: "10px",
+          }}
         >
-          <DashboardCard title="Motor">
-            <Stack mb={3}>
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="modelType">Tipo *</CustomFormLabel>
-                  <Controller
-                    name="modelType"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomSelect
-                        {...field}
-                        fullWidth
-                        variant="outlined"
-                        value={field?.value}
-                        onChange={(e: any) => {
-                          field.onChange(e.target.value);
-                          setSelectedTypeModel(e.target.value);
-                        }}
-                        sx={{
-                          mb: 2,
-                        }}
-                      >
-                        {modelList.map((option, index) => (
-                          <MenuItem key={index} value={option.type}>
-                            {option.type}
-                          </MenuItem>
-                        ))}
-                      </CustomSelect>
-                    )}
-                  />
-                </Box>
-
-                <Box
-                  width={"100%"}
-                  sx={{ display: selectedTypeModel ? "block" : "none" }}
-                >
-                  <CustomFormLabel htmlFor="model">
-                    Marca/Modelo *
-                  </CustomFormLabel>
-                  <Controller
-                    name="model"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomSelect
-                        {...field}
-                        fullWidth
-                        variant="outlined"
-                        sx={{
-                          mb: 2,
-                        }}
-                      >
-                        {modelList.map(
-                          (option) =>
-                            selectedTypeModel === option.type &&
-                            option.items.map((item, index) => (
-                              <MenuItem key={index} value={item}>
-                                {item}
-                              </MenuItem>
-                            ))
-                        )}
-                      </CustomSelect>
-                    )}
-                  />
-                </Box>
-
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="year">Ano *</CustomFormLabel>
-                  <Controller
-                    name="year"
-                    control={control}
-                    rules={{
-                      required: "O ano é obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <>
-                        <CustomSelect
-                          {...field}
-                          fullWidth
-                          variant="outlined"
-                          error={!!errors.year}
-                          onFocus={() => clearErrors("year")}
-                        >
-                          {YEAR.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </CustomSelect>
-                        {errors.year && (
-                          <FormHelperText error sx={{ marginLeft: 2 }}>
-                            {errors.year.message}
-                          </FormHelperText>
-                        )}
-                      </>
-                    )}
-                  />
-                </Box>
-              </Stack>
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="model">Potência *</CustomFormLabel>
-                  <Controller
-                    name="power"
-                    control={control}
-                    rules={{
-                      required: "Campo obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        id="power"
-                        variant="outlined"
-                        fullWidth
-                        onFocus={() => clearErrors("power")}
-                        error={errors.power}
-                        helperText={errors.power?.message}
-                        value={field?.value}
-                        onChange={(e: any) => {
-                          field.onChange(e.target.value);
-                        }}
-                      />
-                    )}
-                  />
-                </Box>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="serial">
-                    Chassi/Serial
-                  </CustomFormLabel>
-                  <Controller
-                    name="serial"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        id="serial"
-                        variant="outlined"
-                        fullWidth
-                        inputProps={{
-                          inputMode: "text",
-                          pattern: "[0-9.-]*",
-                        }}
-                        onChange={(e: any) => {
-                          field.onChange(e.target.value);
-                        }}
-                        value={field.value}
-                      />
-                    )}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="typeOfFuel">
-                    Tipo de Combustível *
-                  </CustomFormLabel>
-                  <Controller
-                    name="typeOfFuel"
-                    control={control}
-                    rules={{
-                      required: "Campo obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <>
-                        <CustomSelect
-                          {...field}
-                          fullWidth
-                          variant="outlined"
-                          error={!!errors.typeOfFuel}
-                          onFocus={() => clearErrors("typeOfFuel")}
-                        >
-                          {FUEL.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </CustomSelect>
-                        {errors.typeOfFuel && (
-                          <FormHelperText error sx={{ marginLeft: 2 }}>
-                            {errors.typeOfFuel.message}
-                          </FormHelperText>
-                        )}
-                      </>
-                    )}
-                  />
-                </Box>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="leisureOrCommercial">
-                    Tipo de uso *
-                  </CustomFormLabel>
-                  <Controller
-                    name="leisureOrCommercial"
-                    control={control}
-                    rules={{
-                      required: "Campo obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <>
-                        <CustomSelect
-                          {...field}
-                          fullWidth
-                          variant="outlined"
-                          error={!!errors.leisureOrCommercial}
-                          onFocus={() => clearErrors("leisureOrCommercial")}
-                        >
-                          {LEISURE_OR_COMMERCIAL.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </CustomSelect>
-                        {errors.leisureOrCommercial && (
-                          <FormHelperText error sx={{ marginLeft: 2 }}>
-                            {errors.leisureOrCommercial.message}
-                          </FormHelperText>
-                        )}
-                      </>
-                    )}
-                  />
-                </Box>
-              </Stack>
-
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="saleDate">
-                    Data de Venda *
-                  </CustomFormLabel>
-                  <Controller
-                    name="saleDate"
-                    control={control}
-                    rules={{ required: "Data de venda é obrigatória" }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        id="birthdate"
-                        variant="outlined"
-                        fullWidth
-                        type="date"
-                        onFocus={() => clearErrors("saleDate")}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        error={!!errors.saleDate}
-                        helperText={
-                          errors.saleDate ? errors.saleDate.message : ""
-                        }
-                      />
-                    )}
-                  />
-                </Box>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="invoice">
-                    Nota fiscal
-                  </CustomFormLabel>
-                  <Controller
-                    name="invoice"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        id="invoice"
-                        variant="outlined"
-                        fullWidth
-                        inputProps={{
-                          inputMode: "text",
-                          pattern: "[0-9.-]*",
-                        }}
-                        onChange={(e: any) => {
-                          field.onChange(e.target.value);
-                        }}
-                        value={field.value}
-                      />
-                    )}
-                  />
-                </Box>
-              </Stack>
-              <Stack
-                alignItems={"end"}
-                flexDirection="row"
-                justifyContent={"space-between"}
-                mt={5}
+          <Stack
+            direction={"row"}
+            justifyContent={"space-between"}
+            alignItems={"center"}
+          >
+            <Typography variant="h5">Motor</Typography>
+            {isNotUnique && (
+              <Button
+                variant="text"
+                color="error"
+                onClick={() => setShowDialog(true)}
               >
-                {showEdit ? (
-                  <Button
-                    sx={{ width: "100px" }}
-                    onClick={() => {
-                      reset();
-                      setShowEdit(false);
+                Remover
+              </Button>
+            )}
+          </Stack>
+
+          <Stack direction={"row"} spacing={5}>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="modelType">Tipo *</CustomFormLabel>
+              <Controller
+                name="modelType"
+                control={control}
+                render={({ field }) => (
+                  <CustomSelect
+                    {...field}
+                    fullWidth
+                    variant="outlined"
+                    value={field?.value}
+                    onChange={(e: any) => {
+                      setEngines({ ...values, modelType: e.target.value });
+                      field.onChange(e.target.value);
+                      setSelectedTypeModel(e.target.value);
                     }}
-                    variant="contained"
-                    color="error"
+                    sx={{
+                      mb: 2,
+                    }}
                   >
-                    Cancelar
-                  </Button>
-                ) : (
-                  <Box />
+                    {modelList.map((option, index) => (
+                      <MenuItem key={index} value={option.type}>
+                        {option.type}
+                      </MenuItem>
+                    ))}
+                  </CustomSelect>
                 )}
-                <Button
-                  sx={{ width: "100px" }}
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={isAnyFieldEmpty}
-                >
-                  {showEdit ? "Atualizar" : "Adicionar"}
-                </Button>
-              </Stack>
-            </Stack>
-          </DashboardCard>
-          {!showEdit && (
-            <>
-              <DashboardCard title="Motores cadastrados">
-                <Paper
-                  variant="outlined"
-                  sx={{ mt: 5, border: `1px solid ${borderColor}` }}
-                >
-                  <TableContainer>
-                    <Table
-                      sx={{ minWidth: 750 }}
-                      aria-labelledby="tableTitle"
-                      size={"medium"}
-                    >
-                      <EnhancedTableHead />
-                      <TableBody>
-                        {listEngines?.map((row: EnginesList, index) => {
-                          return (
-                            <TableRow hover tabIndex={-1} key={index}>
-                              <TableCell>
-                                <Typography>{row.model}</Typography>
-                              </TableCell>
+              />
+            </Box>
 
-                              <TableCell>
-                                <Typography>{row.year}</Typography>
-                              </TableCell>
-
-                              <TableCell>
-                                <Typography>{row.power}</Typography>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip title="Edit">
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      setSelected(row.id);
-                                      handleClick(e);
-                                    }}
-                                  >
-                                    <IconDotsVertical size="1.1rem" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Menu
-                                  id="basic-menu"
-                                  anchorEl={anchorEl}
-                                  open={open}
-                                  onClose={handleClose}
-                                  MenuListProps={{
-                                    "aria-labelledby": "basic-button",
-                                  }}
-                                >
-                                  <MenuItem
-                                    onClick={() => {
-                                      reset(row);
-                                      setShowEdit(true);
-                                      handleClose();
-                                    }}
-                                  >
-                                    Editar
-                                  </MenuItem>
-                                  <MenuItem
-                                    onClick={() => {
-                                      setShowDialog(true);
-                                      handleClose();
-                                    }}
-                                  >
-                                    Excluir
-                                  </MenuItem>
-                                </Menu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    {isEmpty() && (
-                      <Box sx={{ textAlign: "center", paddingY: "40px" }}>
-                        {"Vazio"}
-                      </Box>
+            <Box
+              width={"100%"}
+              sx={{ display: selectedTypeModel ? "block" : "none" }}
+            >
+              <CustomFormLabel htmlFor="model">Marca/Modelo *</CustomFormLabel>
+              <Controller
+                name="model"
+                control={control}
+                render={({ field }) => (
+                  <CustomSelect
+                    {...field}
+                    fullWidth
+                    variant="outlined"
+                    value={field.value}
+                    onChange={(e: any) => {
+                      field.onChange(e.target.value);
+                      setEngines({ ...values, model: e.target.value });
+                    }}
+                    sx={{
+                      mb: 2,
+                    }}
+                  >
+                    {modelList.map(
+                      (option) =>
+                        selectedTypeModel === option.type &&
+                        option.items.map((item, index) => (
+                          <MenuItem key={index} value={item}>
+                            {item}
+                          </MenuItem>
+                        ))
                     )}
-                  </TableContainer>
-                </Paper>
-              </DashboardCard>
+                  </CustomSelect>
+                )}
+              />
+            </Box>
 
-              <Stack
-                direction={"row"}
-                justifyContent={"space-between"}
-                width="100%"
-                pb="50px"
-              >
-                <Button
-                  sx={{ width: "300px", height: "60px" }}
-                  size="large"
-                  onClick={() => handleStep(Steps.TYPE_VESSEL)}
-                  variant="contained"
-                  color="inherit"
-                >
-                  Voltar
-                </Button>
-                <Button
-                  sx={{ width: "300px", height: "60px" }}
-                  size="large"
-                  variant="contained"
-                  color="primary"
-                  disabled={isEmpty()}
-                  onClick={() => {
-                    goToHome();
-                  }}
-                >
-                  {id ? "Atualizar" : "Finalizar"}
-                </Button>
-              </Stack>
-            </>
-          )}
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="year">Ano *</CustomFormLabel>
+              <Controller
+                name="year"
+                control={control}
+                rules={{
+                  required: "O ano é obrigatório",
+                }}
+                render={({ field }) => (
+                  <>
+                    <CustomSelect
+                      {...field}
+                      fullWidth
+                      variant="outlined"
+                      error={!!errors.year}
+                      value={field.value}
+                      onChange={(e: any) => {
+                        field.onChange(e.target.value);
+                        setEngines({ ...values, year: e.target.value });
+                      }}
+                      onFocus={() => clearErrors("year")}
+                    >
+                      {YEAR.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </CustomSelect>
+                    {errors.year && (
+                      <FormHelperText error sx={{ marginLeft: 2 }}>
+                        {errors.year.message}
+                      </FormHelperText>
+                    )}
+                  </>
+                )}
+              />
+            </Box>
+          </Stack>
+          <Stack direction={"row"} spacing={5}>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="model">Potência *</CustomFormLabel>
+              <Controller
+                name="power"
+                control={control}
+                rules={{
+                  required: "Campo obrigatório",
+                }}
+                render={({ field }) => (
+                  <CustomTextField
+                    {...field}
+                    id="power"
+                    variant="outlined"
+                    fullWidth
+                    onFocus={() => clearErrors("power")}
+                    error={errors.power}
+                    helperText={errors.power?.message}
+                    value={field?.value}
+                    onChange={(e: any) => {
+                      setEngines({ ...values, power: e.target.value });
+                      field.onChange(e.target.value);
+                    }}
+                  />
+                )}
+              />
+            </Box>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="serial">Chassi/Serial</CustomFormLabel>
+              <Controller
+                name="serial"
+                control={control}
+                render={({ field }) => (
+                  <CustomTextField
+                    {...field}
+                    id="serial"
+                    variant="outlined"
+                    fullWidth
+                    inputProps={{
+                      inputMode: "text",
+                      pattern: "[0-9.-]*",
+                    }}
+                    onChange={(e: any) => {
+                      setEngines({ ...values, serial: e.target.value });
+                      field.onChange(e.target.value);
+                    }}
+                    value={field.value}
+                  />
+                )}
+              />
+            </Box>
+          </Stack>
+
+          <Stack direction={"row"} spacing={5}>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="typeOfFuel">
+                Tipo de Combustível *
+              </CustomFormLabel>
+              <Controller
+                name="typeOfFuel"
+                control={control}
+                rules={{
+                  required: "Campo obrigatório",
+                }}
+                render={({ field }) => (
+                  <>
+                    <CustomSelect
+                      {...field}
+                      fullWidth
+                      variant="outlined"
+                      error={!!errors.typeOfFuel}
+                      onFocus={() => clearErrors("typeOfFuel")}
+                      value={field.value}
+                      onChange={(e: any) => {
+                        setEngines({ ...values, typeOfFuel: e.target.value });
+                        field.onChange(e.target.value);
+                      }}
+                    >
+                      {FUEL.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </CustomSelect>
+                    {errors.typeOfFuel && (
+                      <FormHelperText error sx={{ marginLeft: 2 }}>
+                        {errors.typeOfFuel.message}
+                      </FormHelperText>
+                    )}
+                  </>
+                )}
+              />
+            </Box>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="leisureOrCommercial">
+                Tipo de uso *
+              </CustomFormLabel>
+              <Controller
+                name="leisureOrCommercial"
+                control={control}
+                rules={{
+                  required: "Campo obrigatório",
+                }}
+                render={({ field }) => (
+                  <>
+                    <CustomSelect
+                      {...field}
+                      fullWidth
+                      variant="outlined"
+                      error={!!errors.leisureOrCommercial}
+                      onFocus={() => clearErrors("leisureOrCommercial")}
+                      value={field.value}
+                      onChange={(e: any) => {
+                        setEngines({
+                          ...values,
+                          leisureOrCommercial: e.target.value,
+                        });
+                        field.onChange(e.target.value);
+                      }}
+                    >
+                      {LEISURE_OR_COMMERCIAL.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </CustomSelect>
+                    {errors.leisureOrCommercial && (
+                      <FormHelperText error sx={{ marginLeft: 2 }}>
+                        {errors.leisureOrCommercial.message}
+                      </FormHelperText>
+                    )}
+                  </>
+                )}
+              />
+            </Box>
+          </Stack>
+
+          <Stack direction={"row"} spacing={5}>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="saleDate">
+                Data de Venda *
+              </CustomFormLabel>
+              <Controller
+                name="saleDate"
+                control={control}
+                rules={{ required: "Data de venda é obrigatória" }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    id="birthdate"
+                    variant="outlined"
+                    fullWidth
+                    type="date"
+                    onFocus={() => clearErrors("saleDate")}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    value={field.value}
+                    onChange={(e: any) => {
+                      setEngines({ ...values, saleDate: e.target.value });
+                      field.onChange(e.target.value);
+                    }}
+                    error={!!errors.saleDate}
+                    helperText={errors.saleDate ? errors.saleDate.message : ""}
+                  />
+                )}
+              />
+            </Box>
+            <Box width={"100%"}>
+              <CustomFormLabel htmlFor="invoice">Nota fiscal</CustomFormLabel>
+              <Controller
+                name="invoice"
+                control={control}
+                render={({ field }) => (
+                  <CustomTextField
+                    {...field}
+                    id="invoice"
+                    variant="outlined"
+                    fullWidth
+                    inputProps={{
+                      inputMode: "text",
+                      pattern: "[0-9.-]*",
+                    }}
+                    onChange={(e: any) => {
+                      field.onChange(e.target.value);
+                      setEngines({ ...values, invoice: e.target.value });
+                    }}
+                    value={field.value}
+                  />
+                )}
+              />
+            </Box>
+          </Stack>
         </Stack>
       </form>
     </>

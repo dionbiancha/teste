@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import PageContainer from "@/components/container/PageContainer";
 import { useRouter, useSearchParams } from "next/navigation";
-import Navigation from "../(home)/layout/horizontal/navbar/Navigation";
 import HorizontalHeader from "../(home)/layout/horizontal/header/Header";
 import { Box, Container } from "@mui/material";
 import { useSelector } from "react-redux";
@@ -12,14 +11,8 @@ import VesselForm from "./vessel";
 import TypeForm from "./type";
 import EngineForm from "./engine";
 import WaveRunnerForm from "./waverunner";
-
-export enum Steps {
-  CLIENT = 0,
-  JETSKI = 1,
-  VESSEL = 2,
-  ENGINE = 3,
-  TYPE_VESSEL = 4,
-}
+import { Steps } from "./data";
+import VesselAndEngineForm from "./vesselAndEngine";
 
 export default function Register() {
   const customizer = useSelector((state: AppState) => state.customizer);
@@ -32,7 +25,6 @@ export default function Register() {
   return (
     <PageContainer title="Dashboard" description="this is Dashboard">
       <HorizontalHeader closeAction />
-      <Navigation />
 
       <Container
         sx={{
@@ -51,10 +43,7 @@ export default function Register() {
           <WaveRunnerForm handleStep={(e) => handleStep(e)} />
         </Box>
         <Box sx={{ display: activeStep === Steps.VESSEL ? "block" : "none" }}>
-          <VesselForm handleStep={(e) => handleStep(e)} />
-        </Box>
-        <Box sx={{ display: activeStep === Steps.ENGINE ? "block" : "none" }}>
-          <EngineForm handleStep={(e) => handleStep(e)} />
+          <VesselAndEngineForm handleStep={(e) => handleStep(e)} />
         </Box>
       </Container>
     </PageContainer>

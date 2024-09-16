@@ -35,7 +35,7 @@ import {
   DEFAULT_FORM_WAVERUNNER,
 } from "./data";
 import { useDispatch } from "@/store/hooks";
-import { Steps } from "./page";
+import { Steps } from "./data";
 import { use, useEffect, useState } from "react";
 import { IconDotsVertical } from "@tabler/icons-react";
 import theme from "@/utils/theme";
@@ -121,16 +121,6 @@ export default function WaveRunnerForm({ handleStep }: VesselFormProps) {
 
   const onSubmit: SubmitHandler<WaveRunner> = async (data: WaveRunner) => {
     try {
-      if (showEdit) {
-        await updateWaveRunner({ ...data, id: selected ?? "" });
-        dispatch(
-          showSnack({
-            title: "Dados atualizados com sucesso!",
-            type: "success",
-          })
-        );
-        setShowEdit(false);
-      }
       if ((clientData.clientId || id) && !showEdit) {
         await addWaveRunner({ ...data, cpf: clientData.clientCpf });
 
@@ -141,7 +131,18 @@ export default function WaveRunnerForm({ handleStep }: VesselFormProps) {
           })
         );
       }
-      reset();
+      if (showEdit) {
+        await updateWaveRunner({ ...data, id: selected ?? "" });
+        dispatch(
+          showSnack({
+            title: "Dados atualizados com sucesso!",
+            type: "success",
+          })
+        );
+        setShowEdit(false);
+      }
+
+      reset(DEFAULT_FORM_WAVERUNNER);
       getListOfRegisteredWaveRunner();
     } catch (err: any) {}
   };
@@ -342,7 +343,7 @@ export default function WaveRunnerForm({ handleStep }: VesselFormProps) {
                   <Button
                     sx={{ width: "100px" }}
                     onClick={() => {
-                      reset();
+                      reset(DEFAULT_FORM_WAVERUNNER);
                       setShowEdit(false);
                     }}
                     variant="contained"
@@ -365,6 +366,7 @@ export default function WaveRunnerForm({ handleStep }: VesselFormProps) {
               </Stack>
             </Stack>
           </DashboardCard>
+
           {!showEdit && (
             <>
               <DashboardCard title="Jetski's cadastrados">
@@ -417,8 +419,12 @@ export default function WaveRunnerForm({ handleStep }: VesselFormProps) {
                                 >
                                   <MenuItem
                                     onClick={() => {
-                                      reset(row);
                                       setShowEdit(true);
+                                      reset(
+                                        listWaveRunners?.find(
+                                          (e) => e.id === selected
+                                        )
+                                      );
                                       handleClose();
                                     }}
                                   >
@@ -463,20 +469,28 @@ export default function WaveRunnerForm({ handleStep }: VesselFormProps) {
                   variant="contained"
                   color="inherit"
                 >
-                  {id ? "Cancelar" : "Voltar"}
+                  Voltar
                 </Button>
-                <Button
-                  sx={{ width: "300px", height: "60px" }}
-                  size="large"
-                  variant="contained"
-                  color="primary"
-                  disabled={isEmpty()}
-                  onClick={() => {
-                    goToHome();
-                  }}
-                >
-                  {id ? "Atualizar" : "Finalizar"}
-                </Button>
+                {!id && (
+                  <Button
+                    sx={{ width: "300px", height: "60px" }}
+                    size="large"
+                    variant="contained"
+                    color="primary"
+                    disabled={isEmpty()}
+                    onClick={() => {
+                      dispatch(
+                        showSnack({
+                          title: "Cadastro efetuado com sucesso!",
+                          type: "success",
+                        })
+                      );
+                      goToHome();
+                    }}
+                  >
+                    Finalizar
+                  </Button>
+                )}
               </Stack>
             </>
           )}

@@ -22,6 +22,7 @@ import {
   MARITAL_STATUS,
   PUBLIC_PLACE,
   STATES,
+  Steps,
 } from "./data";
 import {
   Client,
@@ -32,10 +33,10 @@ import {
   updateClient,
 } from "@/service/client";
 import { showSnack } from "@/store/snack/snackSlice";
-import { useDispatch } from "@/store/hooks";
-import { Steps } from "./page";
+import { useDispatch, useSelector } from "@/store/hooks";
 import { set } from "lodash";
 import { setEditClientData } from "@/store/clientData/clientDataSlice";
+import { AppState } from "@/store/store";
 
 interface ClientFormProps {
   handleStep: (step: Steps) => void;
@@ -46,6 +47,7 @@ export default function ClientForm({ handleStep }: ClientFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const clientData = useSelector((state: AppState) => state.clientData);
   const {
     control,
     handleSubmit,
@@ -69,6 +71,10 @@ export default function ClientForm({ handleStep }: ClientFormProps) {
 
   const onSubmit: SubmitHandler<Client> = async (data: Client) => {
     try {
+      if (clientData.clientId) {
+        handleStep(Steps.TYPE_VESSEL);
+        return;
+      }
       if (id) {
         await updateClient(data);
         dispatch(
@@ -327,7 +333,7 @@ export default function ClientForm({ handleStep }: ClientFormProps) {
                     },
                   }}
                   render={({ field }) => (
-                    <TextField
+                    <CustomTextField
                       {...field}
                       id="email"
                       onFocus={() => clearErrors("email")}

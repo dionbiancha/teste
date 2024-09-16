@@ -287,9 +287,6 @@ const RecordsTableList = () => {
                               "aria-labelledby": "basic-button",
                             }}
                           >
-                            <MenuItem onClick={handleClose}>
-                              Visualizar
-                            </MenuItem>
                             <MenuItem onClick={() => handleEdit()}>
                               Editar
                             </MenuItem>

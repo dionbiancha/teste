@@ -11,7 +11,7 @@ import CustomTextField from "../../components/forms/theme-elements/CustomTextFie
 import CustomSelect from "../../components/forms/theme-elements/CustomSelect";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { DEFAULT_FORM_TYPE, TYPES } from "./data";
-import { Steps } from "./page";
+import { Steps } from "./data";
 
 interface TypeFormProps {
   handleStep: (step: Steps) => void;

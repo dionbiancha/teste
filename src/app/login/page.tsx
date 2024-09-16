@@ -5,7 +5,7 @@ import CustomTextField from "@/components/forms/theme-elements/CustomTextField";
 import CustomFormLabel from "@/components/forms/theme-elements/CustomFormLabel";
 import Logo from "@/app/(home)/layout/shared/logo/Logo";
 import PageContainer from "@/components/container/PageContainer";
-import { doLogin, LoginInterface } from "@/service/auth";
+import { doLogin } from "@/service/auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "@/store/hooks";

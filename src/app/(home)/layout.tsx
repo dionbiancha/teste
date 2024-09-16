@@ -4,7 +4,6 @@ import Container from "@mui/material/Container";
 import { styled, useTheme } from "@mui/material/styles";
 import React, { useState } from "react";
 import Customizer from "./layout/shared/customizer/Customizer";
-import Navigation from "./layout/horizontal/navbar/Navigation";
 import HorizontalHeader from "./layout/horizontal/header/Header";
 import { useSelector } from "@/store/hooks";
 import { AppState } from "@/store/store";
@@ -51,7 +50,7 @@ export default function RootLayout({
         }}
       >
         <HorizontalHeader />
-        <Navigation />
+
         <Container
           sx={{
             maxWidth: customizer.isLayout === "boxed" ? "lg" : "100%!important",

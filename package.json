@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development next dev",
     "build:dev": "cross-env NODE_ENV=development next build",
-    "start:dev": "cross-env NODE_ENV=development next start",
+    "start:dev": "cross-env NODE_ENV=development next start -p 4000",
     "homolog": "cross-env NODE_ENV=homolog next dev",
     "build:homolog": "cross-env NODE_ENV=homolog next build",
     "start:homolog": "cross-env NODE_ENV=homolog next start"

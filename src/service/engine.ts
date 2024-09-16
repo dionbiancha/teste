@@ -1,5 +1,5 @@
 import { ca } from "date-fns/locale";
-import { del, get, post } from "./generic";
+import { del, get, post, put } from "./generic";
 
 export interface Engine {
   id?: string;
@@ -20,6 +20,13 @@ export interface EnginesList {
   model: string;
   year: string;
   power: string;
+  modelType: string;
+  cpf?: string;
+  serial?: string;
+  invoice?: string;
+  saleDate: string;
+  typeOfFuel: string;
+  leisureOrCommercial: string;
 }
 
 export interface EngineModel {
@@ -58,6 +65,15 @@ export async function getListEngines(id: string): Promise<EnginesList[]> {
 export async function deleteEngine(id: string) {
   try {
     const res = await del(`/engines/${id}`);
+    return res.data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function updateEngine(data: Engine[]) {
+  try {
+    const res = await put(`/engines`, data);
     return res.data;
   } catch (err) {
     throw err;

@@ -4,20 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
   FormHelperText,
-  IconButton,
-  Menu,
   MenuItem,
-  Paper,
   Stack,
-  Table,
-  TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TableSortLabel,
-  Tooltip,
-  Typography,
 } from "@mui/material";
 import { useSelector } from "react-redux";
 import { AppState } from "@/store/store";
@@ -32,23 +24,21 @@ import {
   BUILDING_MATERIAL,
   DEFAULT_FORM_VESSEL,
   headCells,
+  DEFAULT_FORM_ENGINE,
 } from "./data";
 import { useDispatch } from "@/store/hooks";
 import { NEW_OR_USED } from "./data";
-import { Steps } from "./page";
-import {
-  addVessel,
-  deleteVessel,
-  getListVessels,
-  Vessels,
-  VesselsList,
-} from "@/service/vessels";
+import { Vessels, VesselsList } from "@/service/vessels";
 import { use, useEffect, useState } from "react";
-import { IconDotsVertical } from "@tabler/icons-react";
-import theme from "@/utils/theme";
-import { showSnack } from "@/store/snack/snackSlice";
-import { set } from "lodash";
+
 import GenericDialog from "@/components/ui-components/dialog/GenericDialog";
+import EngineForm from "./engine";
+import {
+  Engine,
+  EnginesList,
+  getListEngines,
+  updateEngine,
+} from "@/service/engine";
 
 export type Order = "asc" | "desc";
 
@@ -71,20 +61,29 @@ export function EnhancedTableHead() {
 }
 
 interface VesselFormProps {
-  handleStep: (step: Steps) => void;
+  setVessels: (vessels: Vessels) => void;
+  remove: () => void;
+  add: () => void;
+  isEdit?: boolean;
+  finishEdit?: () => void;
+  vessel: VesselsList | undefined;
+  handleSubmit: (data: Vessels) => void;
 }
 
-export default function VesselForm({ handleStep }: VesselFormProps) {
+export default function VesselForm({
+  remove,
+  vessel,
+  finishEdit,
+  isEdit,
+  add,
+  setVessels,
+  handleSubmit,
+}: VesselFormProps) {
   const clientData = useSelector((state: AppState) => state.clientData);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-  const dispatch = useDispatch();
-  const borderColor = theme.palette.divider;
   const {
     control,
-    handleSubmit,
-    setError,
     clearErrors,
 
     getValues,
@@ -95,96 +94,58 @@ export default function VesselForm({ handleStep }: VesselFormProps) {
     defaultValues: DEFAULT_FORM_VESSEL,
   });
   const values = getValues();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const [listVessels, setListVessels] = useState<VesselsList[]>();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [engineForms, setEngineForms] = useState<EnginesList[]>([
+    DEFAULT_FORM_ENGINE,
+  ]);
   const [showDialog, setShowDialog] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
 
   const isAnyFieldEmpty =
     !values.model || !values.shipyard || !values.year || !values.newOrUsed;
 
-  const onSubmit: SubmitHandler<Vessels> = async (data: Vessels) => {
-    try {
-      // if (id) {
-      //   const res = await addVessel(data);
-      //   console.log(res);
-      //   return;
-      // }
-      if (clientData.clientId || id) {
-        await addVessel({ ...data, cpf: clientData.clientCpf });
-
-        reset();
-        dispatch(
-          showSnack({
-            title: "Embarcação adicionada com sucesso!",
-            type: "success",
-          })
-        );
-        getListOfRegisteredVessels();
-      }
-    } catch (err: any) {
-      //   if (err instanceof CpfAlreadyRegistered) {
-      //     dispatch(
-      //       showSnack({
-      //         title: "CPF já cadastrado!",
-      //         type: "error",
-      //       })
-      //     );
-      //     cpfRef.current?.scrollIntoView({ behavior: "smooth" });
-      //   }
-      //   if (err instanceof EmailAlreadyRegistered) {
-      //     dispatch(
-      //       showSnack({
-      //         title: "Email já cadastrado!",
-      //         type: "error",
-      //       })
-      //     );
-      //     emailRef.current?.scrollIntoView({ behavior: "smooth" });
-      //   }
-      // }
-    }
+  const addEngineForm = () => {
+    setEngineForms([
+      ...engineForms,
+      { ...DEFAULT_FORM_ENGINE, id: `${engineForms.length + 1}` },
+    ]);
   };
 
-  async function getListOfRegisteredVessels() {
-    if (!id && !clientData.clientId) return;
+  const removeEngineForm = (id: string) => {
+    setEngineForms(engineForms.filter((engineForm) => engineForm.id !== id));
+  };
+
+  async function getListOfRegisteredEngines() {
+    if (!id && vessel?.id) return;
 
     try {
-      const res = await getListVessels(id ?? clientData.clientId);
-      setListVessels(res);
+      const res = await getListEngines(vessel?.id ?? "");
+      setEngineForms(res);
     } catch (err) {}
   }
 
-  function isEmpty() {
-    return listVessels?.length === 0;
-  }
-
-  async function handleDeleteVessel() {
+  async function handleUpdateEngine() {
     try {
-      if (!selected) return;
-      setShowDialog(false);
-
-      await deleteVessel(selected);
-      getListOfRegisteredVessels();
-      dispatch(
-        showSnack({
-          title: "Embarcação deletada com sucesso!",
-          type: "success",
-        })
-      );
-    } catch (err) {}
+      const res = await updateEngine(engineForms);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   useEffect(() => {
-    getListOfRegisteredVessels();
-  }, []);
+    setVessels && !isEdit && setVessels({ ...values, engines: engineForms });
+  }, [engineForms]);
+
+  useEffect(() => {
+    if (isEdit) {
+      setShowEdit(true);
+      reset(vessel);
+      getListOfRegisteredEngines();
+    } else {
+      setShowEdit(false);
+      reset(DEFAULT_FORM_VESSEL);
+      setEngineForms([DEFAULT_FORM_ENGINE]);
+    }
+  }, [isEdit]);
 
   return (
     <>
@@ -195,329 +156,285 @@ export default function VesselForm({ handleStep }: VesselFormProps) {
           title="Tem certeza que deseja continuar?"
           content="Ao continuar, você irá deletar o cadastro selecionado."
           handleCancel={() => setShowDialog(false)}
-          handleConfirm={() => handleDeleteVessel()}
+          handleConfirm={() => {}}
         />
       )}
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Stack
-          spacing={5}
-          sx={{ minHeight: "calc(100vh - 170px)", marginTop: "30px" }}
-        >
-          <DashboardCard title="Embarcação">
-            <Stack mb={3}>
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="model">Modelo *</CustomFormLabel>
-                  <Controller
-                    name="model"
-                    control={control}
-                    rules={{
-                      required: "O nome é obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        id="model"
-                        variant="outlined"
-                        fullWidth
-                        onFocus={() => clearErrors("model")}
-                        error={errors.model}
-                        helperText={errors.model?.message}
-                        value={field?.value}
-                        onChange={(e: any) => {
-                          field.onChange(e.target.value);
-                        }}
-                      />
-                    )}
-                  />
-                </Box>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="shipyard">
-                    Estaleiro
-                  </CustomFormLabel>
-                  <Controller
-                    name="shipyard"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        id="shipyard"
-                        variant="outlined"
-                        fullWidth
-                        inputProps={{
-                          inputMode: "text",
-                          pattern: "[0-9.-]*",
-                        }}
-                        onChange={(e: any) => {
-                          field.onChange(e.target.value);
-                        }}
-                        value={field.value}
-                      />
-                    )}
-                  />
-                </Box>
-              </Stack>
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="buildingMaterial">
-                    Material de construção
-                  </CustomFormLabel>
-                  <Controller
-                    name="buildingMaterial"
-                    control={control}
-                    render={({ field }) => (
+      <DashboardCard title="Embarcação">
+        <>
+          <Stack mb={3}>
+            <Stack direction={"row"} spacing={5}>
+              <Box width={"100%"}>
+                <CustomFormLabel htmlFor="model">Modelo *</CustomFormLabel>
+                <Controller
+                  name="model"
+                  control={control}
+                  rules={{
+                    required: "O nome é obrigatório",
+                  }}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      id="model"
+                      variant="outlined"
+                      fullWidth
+                      onFocus={() => clearErrors("model")}
+                      error={errors.model}
+                      helperText={errors.model?.message}
+                      value={field?.value}
+                      onChange={(e: any) => {
+                        setVessels({ ...values, model: e.target.value });
+                        field.onChange(e.target.value);
+                      }}
+                    />
+                  )}
+                />
+              </Box>
+              <Box width={"100%"}>
+                <CustomFormLabel htmlFor="shipyard">Estaleiro</CustomFormLabel>
+                <Controller
+                  name="shipyard"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      id="shipyard"
+                      variant="outlined"
+                      fullWidth
+                      inputProps={{
+                        inputMode: "text",
+                        pattern: "[0-9.-]*",
+                      }}
+                      onChange={(e: any) => {
+                        setVessels({ ...values, shipyard: e.target.value });
+                        field.onChange(e.target.value);
+                      }}
+                      value={field.value}
+                    />
+                  )}
+                />
+              </Box>
+            </Stack>
+            <Stack direction={"row"} spacing={5}>
+              <Box width={"100%"}>
+                <CustomFormLabel htmlFor="buildingMaterial">
+                  Material de construção
+                </CustomFormLabel>
+                <Controller
+                  name="buildingMaterial"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomSelect
+                      {...field}
+                      fullWidth
+                      variant="outlined"
+                      onChange={(e: any) => {
+                        setVessels({
+                          ...values,
+                          buildingMaterial: e.target.value,
+                        });
+                        field.onChange(e.target.value);
+                      }}
+                      sx={{
+                        mb: 2,
+                      }}
+                    >
+                      {BUILDING_MATERIAL.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </CustomSelect>
+                  )}
+                />
+              </Box>
+              <Box width={"100%"}>
+                <CustomFormLabel htmlFor="year">Ano *</CustomFormLabel>
+                <Controller
+                  name="year"
+                  control={control}
+                  rules={{
+                    required: "O ano é obrigatório",
+                  }}
+                  render={({ field }) => (
+                    <>
                       <CustomSelect
                         {...field}
                         fullWidth
                         variant="outlined"
-                        sx={{
-                          mb: 2,
+                        error={!!errors.year}
+                        onFocus={() => clearErrors("year")}
+                        onChange={(e: any) => {
+                          setVessels({ ...values, year: e.target.value });
+                          field.onChange(e.target.value);
                         }}
                       >
-                        {BUILDING_MATERIAL.map((option) => (
+                        {YEAR.map((option) => (
                           <MenuItem key={option} value={option}>
                             {option}
                           </MenuItem>
                         ))}
                       </CustomSelect>
-                    )}
-                  />
-                </Box>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="year">Ano *</CustomFormLabel>
-                  <Controller
-                    name="year"
-                    control={control}
-                    rules={{
-                      required: "O ano é obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <>
-                        <CustomSelect
-                          {...field}
-                          fullWidth
-                          variant="outlined"
-                          error={!!errors.year}
-                          onFocus={() => clearErrors("year")}
-                        >
-                          {YEAR.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </CustomSelect>
-                        {errors.year && (
-                          <FormHelperText error sx={{ marginLeft: 2 }}>
-                            {errors.year.message}
-                          </FormHelperText>
-                        )}
-                      </>
-                    )}
-                  />
-                </Box>
-              </Stack>
-              <Stack direction={"row"} spacing={5}>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="newOrUsed">
-                    Novo ou usado *
-                  </CustomFormLabel>
-                  <Controller
-                    name="newOrUsed"
-                    control={control}
-                    rules={{
-                      required: "Campo obrigatório",
-                    }}
-                    render={({ field }) => (
-                      <>
-                        <CustomSelect
-                          {...field}
-                          fullWidth
-                          variant="outlined"
-                          error={!!errors.newOrUsed}
-                          onFocus={() => clearErrors("newOrUsed")}
-                        >
-                          {NEW_OR_USED.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </CustomSelect>
-                        {errors.newOrUsed && (
-                          <FormHelperText error sx={{ marginLeft: 2 }}>
-                            {errors.newOrUsed.message}
-                          </FormHelperText>
-                        )}
-                      </>
-                    )}
-                  />
-                </Box>
-                <Box width={"100%"}>
-                  <CustomFormLabel htmlFor="length">
-                    Comprimento
-                  </CustomFormLabel>
-                  <Controller
-                    name="length"
-                    control={control}
-                    render={({ field }) => (
-                      <>
-                        <CustomSelect {...field} fullWidth variant="outlined">
-                          {LENGTH.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </CustomSelect>
-                      </>
-                    )}
-                  />
-                </Box>
-              </Stack>
-              <Stack
-                alignItems={"end"}
-                flexDirection="row"
-                justifyContent={"space-between"}
-                mt={5}
-              >
-                {showEdit ? (
-                  <Button
-                    sx={{ width: "100px" }}
-                    onClick={() => {
-                      reset();
-                      setShowEdit(false);
-                    }}
-                    variant="contained"
-                    color="error"
-                  >
-                    Cancelar
-                  </Button>
-                ) : (
-                  <Box />
-                )}
-                <Button
-                  sx={{ width: "100px" }}
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={isAnyFieldEmpty}
-                >
-                  {showEdit ? "Atualizar" : "Adicionar"}
-                </Button>
-              </Stack>
+                      {errors.year && (
+                        <FormHelperText error sx={{ marginLeft: 2 }}>
+                          {errors.year.message}
+                        </FormHelperText>
+                      )}
+                    </>
+                  )}
+                />
+              </Box>
             </Stack>
-          </DashboardCard>
-          {!showEdit && (
-            <>
-              <DashboardCard title="Embarcações cadastradas">
-                <Paper
-                  variant="outlined"
-                  sx={{ mt: 5, border: `1px solid ${borderColor}` }}
-                >
-                  <TableContainer>
-                    <Table
-                      sx={{ minWidth: 750 }}
-                      aria-labelledby="tableTitle"
-                      size={"medium"}
-                    >
-                      <EnhancedTableHead />
-                      <TableBody>
-                        {listVessels?.map((row: VesselsList, index) => {
-                          return (
-                            <TableRow hover tabIndex={-1} key={index}>
-                              <TableCell>
-                                <Typography>{row.model}</Typography>
-                              </TableCell>
-
-                              <TableCell>
-                                <Typography>{row.year}</Typography>
-                              </TableCell>
-
-                              <TableCell>
-                                <Typography>{row.newOrUsed}</Typography>
-                              </TableCell>
-                              <TableCell>
-                                <Tooltip title="Edit">
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      setSelected(row.id);
-                                      handleClick(e);
-                                    }}
-                                  >
-                                    <IconDotsVertical size="1.1rem" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Menu
-                                  id="basic-menu"
-                                  anchorEl={anchorEl}
-                                  open={open}
-                                  onClose={handleClose}
-                                  MenuListProps={{
-                                    "aria-labelledby": "basic-button",
-                                  }}
-                                >
-                                  <MenuItem
-                                    onClick={() => {
-                                      reset(row);
-                                      setShowEdit(true);
-                                      handleClose();
-                                    }}
-                                  >
-                                    Editar
-                                  </MenuItem>
-                                  <MenuItem
-                                    onClick={() => {
-                                      setShowDialog(true);
-                                      handleClose();
-                                    }}
-                                  >
-                                    Excluir
-                                  </MenuItem>
-                                </Menu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    {isEmpty() && (
-                      <Box sx={{ textAlign: "center", paddingY: "40px" }}>
-                        {"Vazio"}
-                      </Box>
-                    )}
-                  </TableContainer>
-                </Paper>
-              </DashboardCard>
-
-              <Stack
-                direction={"row"}
-                justifyContent={"space-between"}
-                width="100%"
-                pb="50px"
-              >
+            <Stack direction={"row"} spacing={5}>
+              <Box width={"100%"}>
+                <CustomFormLabel htmlFor="newOrUsed">
+                  Novo ou usado *
+                </CustomFormLabel>
+                <Controller
+                  name="newOrUsed"
+                  control={control}
+                  rules={{
+                    required: "Campo obrigatório",
+                  }}
+                  render={({ field }) => (
+                    <>
+                      <CustomSelect
+                        {...field}
+                        fullWidth
+                        variant="outlined"
+                        error={!!errors.newOrUsed}
+                        onFocus={() => clearErrors("newOrUsed")}
+                        onChange={(e: any) => {
+                          setVessels({ ...values, newOrUsed: e.target.value });
+                          field.onChange(e.target.value);
+                        }}
+                      >
+                        {NEW_OR_USED.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </CustomSelect>
+                      {errors.newOrUsed && (
+                        <FormHelperText error sx={{ marginLeft: 2 }}>
+                          {errors.newOrUsed.message}
+                        </FormHelperText>
+                      )}
+                    </>
+                  )}
+                />
+              </Box>
+              <Box width={"100%"}>
+                <CustomFormLabel htmlFor="length">Comprimento</CustomFormLabel>
+                <Controller
+                  name="length"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <CustomSelect
+                        {...field}
+                        fullWidth
+                        variant="outlined"
+                        onChange={(e: any) => {
+                          setVessels({ ...values, length: e.target.value });
+                          field.onChange(e.target.value);
+                        }}
+                      >
+                        {LENGTH.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </CustomSelect>
+                    </>
+                  )}
+                />
+              </Box>
+            </Stack>
+            <Stack
+              alignItems={"end"}
+              flexDirection="row"
+              justifyContent={"space-between"}
+              mt={5}
+            >
+              {!showEdit && (
                 <Button
-                  sx={{ width: "300px", height: "60px" }}
-                  size="large"
-                  onClick={() => handleStep(Steps.TYPE_VESSEL)}
-                  variant="contained"
-                  color="inherit"
-                >
-                  Voltar
-                </Button>
-                <Button
-                  sx={{ width: "300px", height: "60px" }}
-                  size="large"
-                  variant="contained"
+                  sx={{ width: "100%" }}
+                  variant="text"
                   color="primary"
-                  disabled={isEmpty()}
-                  onClick={() => handleStep(Steps.ENGINE)}
+                  onClick={add}
                 >
-                  {id ? "Atualizar" : "Próximo"}
+                  Adicionar embarcação
                 </Button>
-              </Stack>
-            </>
-          )}
-        </Stack>
-      </form>
+              )}
+            </Stack>
+          </Stack>
+
+          {engineForms.map((engineForm, index) => (
+            <div key={engineForm.id}>
+              <EngineForm
+                engine={engineForm}
+                setEngines={(data) => {
+                  setEngineForms((prevForms) =>
+                    prevForms.map((form, i) =>
+                      i === index
+                        ? { ...form, ...data, cpf: clientData.clientCpf }
+                        : form
+                    )
+                  );
+                }}
+                isNotUnique={engineForms?.length > 1}
+                remove={() => removeEngineForm(engineForm.id ?? "")}
+              />
+            </div>
+          ))}
+          <Button
+            sx={{ width: "100%", marginTop: "50px" }}
+            variant="text"
+            color="primary"
+            onClick={addEngineForm}
+          >
+            Adicionar motor
+          </Button>
+        </>
+      </DashboardCard>
+      <Stack
+        alignItems={"end"}
+        flexDirection="row"
+        justifyContent={"space-between"}
+        my={5}
+      >
+        {showEdit && (
+          <>
+            <Button
+              sx={{ width: "300px", height: "60px" }}
+              size="large"
+              onClick={() => {
+                reset(DEFAULT_FORM_VESSEL);
+                setShowEdit(false);
+                finishEdit && finishEdit();
+              }}
+              variant="contained"
+              color="error"
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              sx={{ width: "300px", height: "60px" }}
+              size="large"
+              onClick={() => {
+                handleUpdateEngine();
+                handleSubmit(values);
+              }}
+              variant="contained"
+              color="primary"
+              disabled={isAnyFieldEmpty}
+            >
+              Salvar
+            </Button>
+          </>
+        )}
+      </Stack>
     </>
   );
 }

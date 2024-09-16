@@ -1,7 +1,7 @@
 import { Client } from "@/service/client";
-import { Engine } from "@/service/engine";
+import { Engine, EnginesList } from "@/service/engine";
 import { WaveRunner } from "@/service/waverunner";
-import { Vessels } from "@/service/vessels";
+import { Vessels, VesselsList } from "@/service/vessels";
 
 export const GENDER = ["Masculino", "Feminino"];
 export const MARITAL_STATUS = ["Solteiro", "Casado", "Divorciado", "Viúvo"];
@@ -186,7 +186,7 @@ export const DEFAULT_FORM_TYPE = {
   type: "",
 };
 
-export const DEFAULT_FORM_VESSEL: Vessels = {
+export const DEFAULT_FORM_VESSEL: VesselsList = {
   cpf: "",
   model: "",
   shipyard: "",
@@ -194,8 +194,10 @@ export const DEFAULT_FORM_VESSEL: Vessels = {
   newOrUsed: "",
   length: "",
   buildingMaterial: "",
+  engines: [],
+  id: "",
 };
-export const DEFAULT_FORM_ENGINE: Engine = {
+export const DEFAULT_FORM_ENGINE: EnginesList = {
   cpf: "",
   modelType: "",
   model: "",
@@ -206,6 +208,7 @@ export const DEFAULT_FORM_ENGINE: Engine = {
   saleDate: "",
   typeOfFuel: "",
   leisureOrCommercial: "",
+  id: "",
 };
 
 export const DEFAULT_FORM_VALUES: Client = {
@@ -262,6 +265,14 @@ export const headCells: readonly HeadCell[] = [
     label: "Ação",
   },
 ];
+
+export const enum Steps {
+  CLIENT = 0,
+  JETSKI = 1,
+  VESSEL = 2,
+  ENGINE = 3,
+  TYPE_VESSEL = 4,
+}
 
 export const headMotorsCells: readonly HeadCell[] = [
   {
