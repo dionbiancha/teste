@@ -6,7 +6,7 @@ const envFile = `.env.${process.env.NODE_ENV}`;
 dotenv.config({ path: resolve(process.cwd(), envFile) });
 
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
