@@ -11,8 +11,19 @@ import VesselForm from "./vessel";
 import TypeForm from "./type";
 import EngineForm from "./engine";
 import WaveRunnerForm from "./waverunner";
+<<<<<<< HEAD
 import { Steps } from "./data";
 import VesselAndEngineForm from "./vesselAndEngine";
+=======
+
+enum Steps {
+  CLIENT = 0,
+  JETSKI = 1,
+  VESSEL = 2,
+  ENGINE = 3,
+  TYPE_VESSEL = 4,
+}
+>>>>>>> c9bb580d8a2b50eef55b714091ed0e697710229d
 
 export default function Register() {
   const customizer = useSelector((state: AppState) => state.customizer);
